@@ -1,5 +1,37 @@
-## Phase 0: January 2025 – August 2025 — Phase 0
-We evaluated the performance of various Large Language Models (LLMs) in generating Data Management Plans (DMPs) that complied with the National Institutes of Health (NIH) requirements. This evaluation was based on analyses from two datasets: DMP_Automatic_Evaluation_Analysis and DMP_Human_Evaluation_Analysis.
+# Project Setup Guide
 
-## Phase 1: October 2025 – May 2026 — Phase 1
-In Phase 1, we will try different strategies to improve the performance of LLMs, such as Retrieval Augmented Generation (RAG) and prompt engineering. We will also start building dmpchef.org. It will only let users request drafts for NIH DMPs in this Phase. By the end of this Phase, we will learn how much LLMs can be improved by being tuned towards a specific DMP generation task (NIH DMP in this case).
+## Create Project Folder and Environment Setup
+
+```bash
+# Create a new project folder
+mkdir <project_folder_name>
+
+# Move into the project folder
+cd <project_folder_name>
+
+# Open the folder in VS Code
+code .
+
+# Create a new Conda environment with Python 3.10
+conda create -p <env_name> python=3.10 -y
+
+# Activate the environment (use full path to the environment)
+conda activate <path_of_the_env>
+
+# Install dependencies from requirements.txt
+pip install -r requirements.txt
+
+# Initialize Git
+git init
+
+# Stage all files
+git add .
+
+# Commit changes
+git commit -m "<write your commit message>"
+
+# Push to remote (after adding remote origin)
+git push
+
+# Cloning the repository
+git clone https://github.com/fairdataihub/AI_DMP.git
