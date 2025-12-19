@@ -30,6 +30,7 @@ faiss_index/
 # 📂 Data & Archives
 # ========================
 data/
+data-Copy/
 outputs/
 archive/
 main_archive/
