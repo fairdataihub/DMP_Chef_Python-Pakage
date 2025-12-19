@@ -1,22 +1,28 @@
-# Project Setup Guide
-
-
-```bash
-# Cloning the repository
+# 1) Clone the repository
 git clone https://github.com/fairdataihub/dmpchef.git
+cd dmpchef
 
-# Open the folder in VS Code
+# 2) Open the project in VS Code
 code .
 
-# Create a new Conda environment with Python 3.10
-conda create -p <env_name> python=3.10 -y
+# 3) Create a new Conda environment (Python 3.10)
+# Option A (recommended): named environment
+conda create -n dmpchef python=3.10 -y
+conda activate dmpchef
 
-# Activate the environment (use full path to the environment)
-conda activate <path_of_the_env>
+# Option B: environment in a specific folder (path-based)
+# conda create -p ./venv python=3.10 -y
+# conda activate ./venv
 
-# Install dependencies from requirements.txt
+# 4) Install dependencies
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 
-# Run it
+# 5) Install the project (if setup.py exists)
+python setup.py install
+# OR (more modern / recommended)
+# pip install -e .
+
+# 6) Run the web app
 uvicorn app:app --reload
 
