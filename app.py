@@ -1,32 +1,34 @@
 # ===============================================================
-# app.py — NIH DMP Generator (FastAPI) [Fixed + Clean Imports]
-# - Uses the fixed core_pipeline_UI.py (DMPPipeline)
-# - Removes fragile sys.path hacks (recommended)
-# - Escapes HTML in output to avoid breaking the page
+# app.py — NIH DMP Generator (FastAPI) + Working Download Buttons
+# - Uses pipeline output folders directly (no hard-coded paths)
+# - URL-encodes filenames so spaces don't break download links
 # ===============================================================
 
-from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse
+import re
+from pathlib import Path
 from html import escape
+from urllib.parse import quote
 
-# ✅ If app.py is in project root and core_pipeline_UI.py is inside /src
-# Make sure you have: src/__init__.py
+from fastapi import FastAPI, Form, Request, HTTPException
+from fastapi.responses import HTMLResponse, FileResponse
+
 from src.core_pipeline_UI import DMPPipeline
 
 app = FastAPI()
 
-# Build pipeline once at startup (fast UI)
 pipeline = DMPPipeline(config_path="config/config.yaml", force_rebuild_index=False)
 
 
-# ---------------------------------------------------------------
+def safe_filename(title: str) -> str:
+    """Match the same safe-title rule used in core_pipeline_UI.py."""
+    return re.sub(r'[\\/*?:"<>|]', "_", (title or "").strip()).strip()
+
+
 @app.get("/", response_class=HTMLResponse)
 async def form_page():
-    """Render the input form (empty results initially)."""
     return render_form()
 
 
-# ---------------------------------------------------------------
 @app.post("/", response_class=HTMLResponse)
 async def generate_dmp(
     request: Request,
@@ -38,7 +40,6 @@ async def generate_dmp(
     consent_status: str = Form(""),
     data_volume: str = Form(""),
 ):
-    """Generate NIH DMP and show results below the form."""
     form_inputs = {
         "research_context": research_context,
         "data_types": data_types,
@@ -48,30 +49,80 @@ async def generate_dmp(
         "data_volume": data_volume,
     }
 
-    # Run generation
     md_text = pipeline.generate_dmp(title, form_inputs)
-
-    # Return the same form with the generated result appended below
     return render_form(result=md_text, title=title)
 
 
-# ---------------------------------------------------------------
-def render_form(result: str = "", title: str = ""):
-    """Helper to render the HTML form + result (if any)."""
+# -------------------- Download endpoints -----------------------
 
-    # ✅ escape output so markdown doesn't break HTML and avoids injection
+@app.get("/download/json/{title}")
+async def download_json(title: str):
+    st = safe_filename(title)
+    json_dir = getattr(pipeline, "output_json", Path("data/outputs/json"))
+    json_path = Path(json_dir) / f"{st}.json"
+    if not json_path.exists():
+        raise HTTPException(status_code=404, detail=f"JSON not found: {json_path}")
+    return FileResponse(str(json_path), media_type="application/json", filename=f"{st}.json")
+
+
+@app.get("/download/docx/{title}")
+async def download_docx(title: str):
+    st = safe_filename(title)
+    docx_dir = getattr(pipeline, "output_docx", Path("data/outputs/docx"))
+    docx_path = Path(docx_dir) / f"{st}.docx"
+    if not docx_path.exists():
+        raise HTTPException(status_code=404, detail=f"DOCX not found: {docx_path}")
+    return FileResponse(
+        str(docx_path),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        filename=f"{st}.docx",
+    )
+
+
+@app.get("/download/md/{title}")
+async def download_md(title: str):
+    st = safe_filename(title)
+    md_dir = getattr(pipeline, "output_md", Path("data/outputs/markdown"))
+    md_path = Path(md_dir) / f"{st}.md"
+    if not md_path.exists():
+        raise HTTPException(status_code=404, detail=f"Markdown not found: {md_path}")
+    return FileResponse(str(md_path), media_type="text/markdown", filename=f"{st}.md")
+
+
+# -------------------- HTML rendering ---------------------------
+
+def render_form(result: str = "", title: str = "") -> str:
+    st = safe_filename(title)
+    t = escape(title or "")
+    st_url = quote(st)  # important: spaces -> %20
+
     result_html = ""
     if result:
         result_html = f"""
         <hr style="margin: 40px 0;">
-        <h2>✅ NIH DMP Generated for: <i>{escape(title)}</i></h2>
+        <h2>✅ NIH DMP Generated for: <i>{t}</i></h2>
+
+        <div style="display:flex; gap:10px; margin: 12px 0 18px 0; flex-wrap: wrap;">
+            <a href="/download/json/{st_url}"
+               style="display:inline-block; padding:10px 14px; background:#1f7a1f; color:#fff; text-decoration:none; border-radius:6px;">
+               ⬇️ Download JSON
+            </a>
+
+            <a href="/download/docx/{st_url}"
+               style="display:inline-block; padding:10px 14px; background:#6a1b9a; color:#fff; text-decoration:none; border-radius:6px;">
+               ⬇️ Download DOCX
+            </a>
+
+            <a href="/download/md/{st_url}"
+               style="display:inline-block; padding:10px 14px; background:#444; color:#fff; text-decoration:none; border-radius:6px;">
+               ⬇️ Download Markdown
+            </a>
+        </div>
+
         <pre style="white-space: pre-wrap; background:#f8f8f8; padding:15px; border-radius:8px; border:1px solid #eee;">
 {escape(result)}
         </pre>
         """
-
-    # ✅ keep form values after submit (nice UX)
-    t = escape(title or "")
 
     return f"""
     <html>

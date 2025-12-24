@@ -238,6 +238,11 @@ class DMPPipeline:
                         "form_inputs": form_inputs,
                         "template_used": str(self.template_md),
                         "generated_markdown": result,
+                        "outputs": {
+                            "markdown_path": str(md_path),
+                            "docx_path": str(docx_path),
+                            "json_path": str(json_path),
+                        },
                     },
                     f,
                     indent=2,
